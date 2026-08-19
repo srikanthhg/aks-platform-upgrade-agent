@@ -1,0 +1,4 @@
+* @repository-owner
+/backend/ @platform-engineering
+/frontend/ @frontend-engineering
+/infra/ @cloud-platform

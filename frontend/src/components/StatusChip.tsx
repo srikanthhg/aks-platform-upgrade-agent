@@ -1,0 +1,1 @@
+import {Chip} from '@mui/material';export function StatusChip({status}:{status:string}){const s=status.toUpperCase();const color=s.includes('FAIL')||s.includes('REJECT')?'error':s.includes('WAIT')||s.includes('WARN')?'warning':s.includes('COMPLETE')||s.includes('PASS')||s.includes('SUCCESS')?'success':'default';return <Chip size="small" label={status} color={color}/>}

@@ -1,0 +1,1 @@
+import {createTheme} from '@mui/material/styles';export const theme=createTheme({palette:{mode:'dark',background:{default:'#08101d',paper:'#101b2c'},primary:{main:'#64b5f6'}},shape:{borderRadius:12},typography:{fontFamily:'Inter,Segoe UI,Arial,sans-serif'}});
