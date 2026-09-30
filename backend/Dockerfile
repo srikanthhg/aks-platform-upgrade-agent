@@ -23,7 +23,7 @@ RUN curl -fsSL "https://pkgs.k8s.io/core:/stable:/${KUBECTL_MINOR}/deb/Release.k
     && rm -rf /var/lib/apt/lists/*
 
 ARG KUBELOGIN_VERSION=v0.2.20
-ARG KUBELOGIN_SHA256=d35a8905e260a7ea456f5c99a95954070c37ce9c53c3a0ae469e18049595c088
+ARG KUBELOGIN_SHA256=2e92450a929dd2aec4da818b40dd4fda97aaeae2d6cd9c1074cc1371210f4ab9
 RUN curl -fsSL "https://github.com/Azure/kubelogin/releases/download/${KUBELOGIN_VERSION}/kubelogin-linux-amd64.zip" \
       -o /tmp/kubelogin.zip \
     && echo "${KUBELOGIN_SHA256}  /tmp/kubelogin.zip" | sha256sum -c - \
