@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@azure/msal-browser": "3.28.1",
-    "@azure/msal-react": "2.1.6",
+    "@azure/msal-react": "2.2.0",
     "@emotion/react": "11.13.5",
     "@emotion/styled": "11.13.5",
     "@mui/icons-material": "6.1.9",
