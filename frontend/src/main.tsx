@@ -1,1 +1,29 @@
-import React from 'react';import ReactDOM from 'react-dom/client';import {MsalProvider} from '@azure/msal-react';import {CssBaseline,ThemeProvider} from '@mui/material';import App from './App';import {msalInstance} from './auth';import {theme} from './theme';await msalInstance.initialize();const result=await msalInstance.handleRedirectPromise();if(result?.account)msalInstance.setActiveAccount(result.account);ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><MsalProvider instance={msalInstance}><ThemeProvider theme={theme}><CssBaseline/><App/></ThemeProvider></MsalProvider></React.StrictMode>);
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { MsalProvider } from '@azure/msal-react';
+import { CssBaseline, ThemeProvider } from '@mui/material';
+import App from './App';
+import { msalInstance } from './auth';
+import { theme } from './theme';
+
+async function bootstrap(): Promise<void> {
+  await msalInstance.initialize();
+
+  const result = await msalInstance.handleRedirectPromise();
+  if (result?.account) {
+    msalInstance.setActiveAccount(result.account);
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <MsalProvider instance={msalInstance}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <App />
+        </ThemeProvider>
+      </MsalProvider>
+    </React.StrictMode>,
+  );
+}
+
+void bootstrap();
