@@ -146,7 +146,7 @@ jobs:
             ${{ env.DOCKERHUB_FRONTEND_IMAGE }}:sha-${{ steps.meta.outputs.short_sha }}
           provenance: false
           build-args: |
-            VITE_ENTRA_TENANT_ID=test
-            VITE_ENTRA_CLIENT_ID=test
-            VITE_API_SCOPE=api://test/AKS.Upgrade
-            VITE_API_BASE_URL=https://api.example.invalid/api/v1
+            VITE_ENTRA_TENANT_ID={{ secrets.VITE_ENTRA_TENANT_ID }}
+            VITE_ENTRA_CLIENT_ID={{ secrets.VITE_ENTRA_CLIENT_ID }}
+            VITE_API_SCOPE={{ secrets.VITE_API_SCOPE }}
+            VITE_API_BASE_URL={{ secrets.VITE_API_BASE_URL }}
