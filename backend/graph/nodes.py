@@ -7,11 +7,12 @@ from agents.validation import ValidationAgent
 from agents.upgrade import UpgradeAgent
 from agents.reporting import ReportingAgent
 from agents.notification import NotificationAgent
+from agents.ai_advisor import AIAdvisor
 from graph.state import AKSUpgradeState
 from tools.logger import logger
 
 _discovery, _validation, _upgrade = DiscoveryAgent(), ValidationAgent(), UpgradeAgent()
-_reporting, _notification = ReportingAgent(), NotificationAgent()
+_reporting, _notification, _ai_advisor = ReportingAgent(), NotificationAgent(), AIAdvisor()
 
 
 def _safe(name: str, fn, state: AKSUpgradeState) -> dict[str, Any]:
@@ -26,6 +27,18 @@ def _safe(name: str, fn, state: AKSUpgradeState) -> dict[str, Any]:
 def discovery_node(state): return _safe('discovery', _discovery.run, state)
 def validation_node(state): return _safe('validation', _validation.run, state)
 def upgrade_node(state): return _safe('upgrade', _upgrade.run, state)
+
+
+def ai_advisor_node(state):
+    try:
+        result = _ai_advisor.assess(dict(state))
+        logger.info('Azure OpenAI advisor status: %s', result.get('status'))
+        return {'ai_advisor': result}
+    except Exception as exc:
+        # AI advice is informative only. Preserve deterministic safety checks and
+        # continue the workflow while making the AI service failure visible.
+        logger.exception('AI advisor failed; continuing without AI advice')
+        return {'ai_advisor': {'enabled': True, 'status': 'UNAVAILABLE', 'summary': 'Azure OpenAI analysis failed. Continue using deterministic validation only.', 'error': str(exc)[:1000], 'risks': [], 'recommendations': [], 'questions': [], 'advisory_only': True}}
 
 
 def pre_report_node(state):
@@ -45,7 +58,7 @@ def final_notification_node(state): return {'notifications': {**state.get('notif
 
 
 def approval_node(state):
-    response = interrupt({'type': 'aks_upgrade_approval', 'cluster_name': state.get('cluster', {}).get('cluster_name'), 'target_version': state.get('upgrade', {}).get('target_version'), 'warnings': state.get('validation', {}).get('warnings', [])})
+    response = interrupt({'type': 'aks_upgrade_approval', 'cluster_name': state.get('cluster', {}).get('cluster_name'), 'target_version': state.get('upgrade', {}).get('target_version'), 'warnings': state.get('validation', {}).get('warnings', []), 'ai_advisor': state.get('ai_advisor', {})})
     approved = bool(response.get('approved', False))
     return {'approval': {'approved': approved, 'approved_by': response.get('approved_by'), 'comment': response.get('comment'), 'status': 'APPROVED' if approved else 'REJECTED'}}
 
