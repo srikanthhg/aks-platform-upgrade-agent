@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     azure_subscription_id: str | None=None
     azure_managed_identity_client_id: str | None=None
     azure_auth_mode: Literal['existing','managed_identity']='existing'
+    azure_openai_endpoint: str | None = None
+    azure_openai_deployment: str | None = None
+    azure_openai_api_version: str = '2024-10-21'
+    azure_openai_api_key: str | None = None
+    ai_advisor_enabled: bool = True
     allow_real_upgrades: bool=False
     default_dry_run: bool=True
     teams_webhook_url: str | None=None
@@ -36,6 +41,9 @@ class Settings(BaseSettings):
             if not self.entra_tenant_id or not self.entra_audience: raise ValueError('ENTRA_TENANT_ID and ENTRA_AUDIENCE are required')
             if not self.database_url.startswith(('postgresql://','postgresql+psycopg://')): raise ValueError('Production requires PostgreSQL DATABASE_URL')
         return self
+    @property
+    def ai_enabled(self) -> bool:
+        return self.ai_advisor_enabled and bool(self.azure_openai_endpoint and self.azure_openai_deployment)
     @property
     def cors_origins(self) -> list[str]:
         return [x.strip() for x in self.cors_allowed_origins.split(',') if x.strip()]
