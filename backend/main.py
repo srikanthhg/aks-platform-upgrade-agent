@@ -12,7 +12,7 @@ settings=get_settings()
 @asynccontextmanager
 async def lifespan(app:FastAPI)->AsyncIterator[None]:
     logger.info('AKS Upgrade Agent API starting in %s mode',settings.app_environment); yield; logger.info('AKS Upgrade Agent API stopping')
-app=FastAPI(title='AKS Upgrade Agent API',version='4.0.0',lifespan=lifespan)
+app=FastAPI(title='AKS Upgrade Agent API',version='4.1.0',lifespan=lifespan)
 app.add_middleware(CORSMiddleware,allow_origins=settings.cors_origins,allow_credentials=False,allow_methods=['GET','POST','OPTIONS'],allow_headers=['Authorization','Content-Type','X-API-Key'])
 app.include_router(router,prefix='/api/v1',tags=['workflows'])
 @app.get('/health')
@@ -24,4 +24,4 @@ def ready():
     except Exception as exc: raise HTTPException(503,f'PostgreSQL is not ready: {exc}') from exc
     return {'status':'ready'}
 @app.get('/diagnostics')
-def diagnostics(): return {'environment':settings.app_environment,'auth_mode':settings.auth_mode,'allow_real_upgrades':settings.allow_real_upgrades,'default_dry_run':settings.default_dry_run,'database':'postgresql','az_available':shutil.which('az') is not None,'kubectl_available':shutil.which('kubectl') is not None,'kubelogin_available':shutil.which('kubelogin') is not None,'multi_replica_supported':True}
+def diagnostics(): return {'environment':settings.app_environment,'auth_mode':settings.auth_mode,'allow_real_upgrades':settings.allow_real_upgrades,'default_dry_run':settings.default_dry_run,'ai_advisor_enabled':settings.ai_enabled,'ai_provider':'Azure OpenAI' if settings.ai_enabled else None,'database':'postgresql','az_available':shutil.which('az') is not None,'kubectl_available':shutil.which('kubectl') is not None,'kubelogin_available':shutil.which('kubelogin') is not None,'multi_replica_supported':True}
