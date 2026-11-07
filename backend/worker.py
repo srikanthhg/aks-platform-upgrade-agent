@@ -6,6 +6,7 @@ import traceback
 
 from config import get_settings
 from graph.checkpointer import create_checkpointer
+from graph.nodes import initialize_node_dependencies
 from graph.workflow import build_workflow
 from services.job_queue import JobQueue
 from services.locks import ClusterLockStore
@@ -32,10 +33,11 @@ def main():
     try:
         queue.initialize()
         lock_store.initialize()
+        initialize_node_dependencies()
         connection, checkpointer = create_checkpointer(settings.database_url)
         graph = build_workflow(checkpointer)
         service = WorkflowService(graph=graph, lock_store=lock_store, queue=queue)
-        logger.info('Workflow worker started; PostgreSQL dependencies initialized')
+        logger.info("Workflow worker started; PostgreSQL dependencies initialized")
 
         while running:
             job = queue.claim(
@@ -46,19 +48,19 @@ def main():
                 continue
             try:
                 service.execute_job(job)
-                queue.complete(job['id'])
+                queue.complete(job["id"])
             except Exception as exc:
                 logger.error(
-                    'Workflow job %s failed: %s\\n%s',
-                    job['id'], exc, traceback.format_exc(),
+                    "Workflow job %s failed: %s\\n%s",
+                    job["id"], exc, traceback.format_exc(),
                 )
                 service.fail_job(job, str(exc))
-                queue.fail(job['id'], str(exc), retry=False)
+                queue.fail(job["id"], str(exc), retry=False)
     finally:
         if connection is not None:
             connection.close()
-        logger.info('Workflow worker stopped')
+        logger.info("Workflow worker stopped")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
