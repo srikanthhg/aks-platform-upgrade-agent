@@ -17,6 +17,8 @@ param uiMaxReplicas int = 5
 param externalApiIngress bool = true
 param applicationInsightsConnectionString string = ''
 param allowRealUpgrades bool = false
+@minValue(1)
+@maxValue(240)
 param approvalTtlMinutes int = 30
 param aiAdvisorEnabled bool = true
 @description('Azure OpenAI resource endpoint, for example https://resource.openai.azure.com/')
