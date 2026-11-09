@@ -17,7 +17,8 @@ Dedicated LangGraph worker
         │
         ├── Azure CLI + kubectl ──► AKS discovery and deterministic health checks
         │
-        ├── Azure OpenAI ──► Risk analysis, recommendations, missing-information questions
+        ├── Azure OpenAI GPT-4.1-class ──► Bounded read-only fact tools, risk analysis, recommendations
+        ├── Human approval bound to the exact upgrade plan (all real upgrades)
         │
         ├── Human approval gate (required for validation warnings)
         │
@@ -27,10 +28,11 @@ Dedicated LangGraph worker
 ## What makes this AI-assisted?
 
 - The workflow sends real discovered AKS facts—Kubernetes versions, available upgrades, node pools, validation results, and dry-run intent—to an Azure OpenAI chat deployment.
-- The model returns structured operational analysis: summary, risks, recommendations, and questions about missing information.
+- The model can call a small allowlist of bounded, read-only tools over facts already discovered by deterministic Azure CLI/kubectl agents, then returns operational analysis: summary, risks, recommendations, proposed checks, and missing-information questions.
 - The AI analysis is saved into LangGraph state and included in the workflow reports and approval context.
-- The application remains safe if Azure OpenAI is unavailable: the AI result is marked `UNAVAILABLE`, while deterministic validation and the configured approval gates remain authoritative.
-- The model does not run arbitrary shell commands, change cluster state, bypass validation, or approve its own recommendations.
+- The application remains safe if Azure OpenAI is unavailable: the AI result is marked `UNAVAILABLE`, while deterministic validation and mandatory human approval for real upgrades remain authoritative.
+- The model does not run arbitrary shell commands, Azure CLI, kubectl, change cluster state, bypass validation, or approve its own recommendations.
+- Every real upgrade requires an authenticated Entra operator approval bound to a SHA-256 hash of the cluster, target version, node pools, max surge, and validation facts. The executor checks this independently.
 
 ## Repository layout
 
