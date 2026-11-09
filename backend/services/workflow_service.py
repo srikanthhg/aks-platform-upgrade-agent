@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 from langgraph.types import Command
@@ -88,7 +89,7 @@ class WorkflowService:
         state = current['state']
         plan_hash = approval_plan_hash(state)
         self.lock_store.refresh(thread_id)
-        self.queue.enqueue(thread_id, 'resume', {'approved': approved, 'operator': operator, 'comment': comment, 'plan_hash': plan_hash})
+        self.queue.enqueue(thread_id, 'resume', {'approved': approved, 'operator': operator, 'comment': comment, 'plan_hash': plan_hash, 'approved_at': datetime.now(timezone.utc).isoformat() if approved else None})
         write_audit('workflow_approval_queued', actor=operator, details={'thread_id': thread_id, 'approved': approved, 'comment': comment, 'plan_hash': plan_hash, 'status': 'APPROVAL_QUEUED'})
         current['status'] = 'APPROVAL_QUEUED'
         return current
@@ -108,6 +109,7 @@ class WorkflowService:
                     'approved_by': payload['operator'],
                     'comment': payload.get('comment'),
                     'plan_hash': payload.get('plan_hash'),
+                    'approved_at': payload.get('approved_at'),
                 }), config=self.config(thread_id))
         else:
             raise ValueError(f'Unsupported job type: {job_type}')
