@@ -9,7 +9,17 @@ Keep `allowRealUpgrades=false` until dry-run validation succeeds. Build backend 
 1. Create an Azure OpenAI / Azure AI Foundry resource in a region and subscription with GPT-4.1 model availability and quota.
 2. Deploy a chat model from the GPT-4.1 family. The deployment name is an arbitrary resource-level name; set that exact name in `azureOpenAIDeployment` (example: `gpt-41-aks-advisor`). The code selects the deployment by this name; it does not hard-code a model ID.
 3. Set `azureOpenAIEndpoint` to the resource endpoint and keep `azureOpenAIApiVersion` on a version supported by your resource/deployment.
-4. Grant the user-assigned identity attached to both the API and worker the **Cognitive Services OpenAI User** role on the Azure OpenAI resource. Use the resource scope, not subscription-wide scope. No API key is needed in ACA; the backend uses `DefaultAzureCredential` and managed identity.
+4. Grant the user-assigned identity attached to both the API and worker the **Cognitive Services OpenAI User** role on the Azure OpenAI resource. Use the resource scope, not subscription-wide scope. Example:
+
+   ```bash
+   az role assignment create \\
+     --assignee-object-id <managed-identity-principal-id> \\
+     --assignee-principal-type ServicePrincipal \\
+     --role 'Cognitive Services OpenAI User' \\
+     --scope <azure-openai-resource-id>
+   ```
+
+   No API key is needed in ACA; the backend uses `DefaultAzureCredential` and managed identity.
 5. Set `aiAdvisorEnabled=true`. Both API and worker receive the endpoint, deployment, API version, and enable flag. The worker executes the LangGraph model call. Verify `/diagnostics` and the workflow's `ai_advisor.status` after deployment.
 
 The model has three bounded, read-only tools over facts already gathered by deterministic discovery: available upgrade facts, node pool facts, and validation facts. It cannot invoke Azure CLI, kubectl, shell commands, or write operations. Tool calls are capped. Its risk analysis, recommendations, and proposed checks are advisory and cannot alter deterministic validation outcomes.
