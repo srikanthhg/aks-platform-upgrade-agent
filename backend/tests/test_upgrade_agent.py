@@ -56,9 +56,9 @@ def test_real_upgrade_requires_approval_even_when_validation_passes(monkeypatch)
 
 def test_real_upgrade_requires_approval_plan_hash(monkeypatch):
     from agents import upgrade
-    monkeypatch.setattr(upgrade, 'get_settings', lambda: type('Settings', (), {'allow_real_upgrades': True, 'default_dry_run': True})())
+    monkeypatch.setattr(upgrade, 'get_settings', lambda: type('Settings', (), {'allow_real_upgrades': True, 'default_dry_run': True, 'approval_ttl_minutes': 30})())
     state = valid_state(dry_run=False)
-    state['approval'] = {'approved': True, 'approved_by': 'operator@example.com', 'plan_hash': 'wrong'}
+    state['approval'] = {'approved': True, 'approved_by': 'operator@example.com', 'approved_at': datetime.now(timezone.utc).isoformat(), 'plan_hash': 'wrong'}
     with pytest.raises(PermissionError, match='plan has changed'):
         UpgradeAgent().run(state)
 
@@ -73,3 +73,18 @@ def test_real_upgrade_with_matching_approval_can_execute(validate, monkeypatch):
     state['approval']['plan_hash'] = approval_plan_hash(state)
     result = UpgradeAgent().run(state)
     assert result['upgrade']['status'] == 'SUCCEEDED'
+
+
+
+def test_expired_approval_is_rejected(monkeypatch):
+    from agents import upgrade
+    monkeypatch.setattr(upgrade, 'get_settings', lambda: type('Settings', (), {'allow_real_upgrades': True, 'default_dry_run': True, 'approval_ttl_minutes': 30})())
+    state = valid_state(dry_run=False)
+    state['approval'] = {
+        'approved': True,
+        'approved_by': 'operator@example.com',
+        'approved_at': (datetime.now(timezone.utc) - timedelta(minutes=31)).isoformat(),
+    }
+    state['approval']['plan_hash'] = approval_plan_hash(state)
+    with pytest.raises(PermissionError, match='expired'):
+        UpgradeAgent().run(state)
