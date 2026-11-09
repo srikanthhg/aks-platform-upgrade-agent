@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from datetime import datetime, timezone
 
 from config import get_settings
 from graph.approval import approval_plan_hash
@@ -26,6 +27,15 @@ class UpgradeAgent:
                 raise PermissionError('Human approval is required for every real AKS upgrade.')
             if not approval.get('approved_by'):
                 raise PermissionError('A verified operator identity is required for every real AKS upgrade.')
+            if not approval.get('approved_at'):
+                raise PermissionError('A timestamped operator approval is required for every real AKS upgrade.')
+            try:
+                approved_at = datetime.fromisoformat(str(approval['approved_at']).replace('Z', '+00:00'))
+                age_seconds = (datetime.now(timezone.utc) - approved_at).total_seconds()
+            except (TypeError, ValueError) as exc:
+                raise PermissionError('The operator approval timestamp is invalid.') from exc
+            if age_seconds < 0 or age_seconds > settings.approval_ttl_minutes * 60:
+                raise PermissionError('The operator approval has expired. Request a new approval.')
             expected_hash = approval_plan_hash(state)
             if approval.get('plan_hash') != expected_hash:
                 raise PermissionError('The approved upgrade plan has changed. Request a new approval.')
