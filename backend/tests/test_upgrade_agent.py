@@ -67,7 +67,7 @@ def test_real_upgrade_requires_approval_plan_hash(monkeypatch):
 @patch('agents.upgrade.AzureCLI', FakeCLI)
 def test_real_upgrade_with_matching_approval_can_execute(validate, monkeypatch):
     from agents import upgrade
-    monkeypatch.setattr(upgrade, 'get_settings', lambda: type('Settings', (), {'allow_real_upgrades': True, 'default_dry_run': True})())
+    monkeypatch.setattr(upgrade, 'get_settings', lambda: type('Settings', (), {'allow_real_upgrades': True, 'default_dry_run': True, 'approval_ttl_minutes': 30})())
     state = valid_state(dry_run=False)
     state['approval'] = {'approved': True, 'approved_by': 'operator@example.com', 'approved_at': datetime.now(timezone.utc).isoformat()}
     state['approval']['plan_hash'] = approval_plan_hash(state)
