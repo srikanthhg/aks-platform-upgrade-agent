@@ -13,6 +13,7 @@
     "entraTenantId": {"value": "00000000-0000-0000-0000-000000000000"},
     "entraAudience": {"value": "api://00000000-0000-0000-0000-000000000000"},
     "allowRealUpgrades": {"value": false},
+    "approvalTtlMinutes": {"value": 30},
     "aiAdvisorEnabled": {"value": true},
     "azureOpenAIEndpoint": {"value": "https://YOUR-RESOURCE.openai.azure.com/"},
     "azureOpenAIDeployment": {"value": "gpt-41-aks-advisor"},
