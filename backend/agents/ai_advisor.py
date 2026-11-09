@@ -113,7 +113,7 @@ class AIAdvisor:
                 tool_choice="auto",
             )
             message = response.choices[0].message
-            if not message.tool_calls:
+            if not getattr(message, 'tool_calls', None):
                 content = message.content or "{}"
                 break
             messages.append({
