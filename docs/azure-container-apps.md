@@ -18,7 +18,7 @@ The model has three bounded, read-only tools over facts already gathered by dete
 
 - A clean dry run may proceed without an approval pause. Validation warnings require operator review.
 - **Every real upgrade requires an authenticated Entra operator approval**, including when validation is PASS.
-- The approval is bound to a SHA-256 hash of the cluster identity, current/target Kubernetes versions, dry-run mode, max surge, node pool list, and validation status/warnings. A changed plan invalidates the approval.
+- The approval is bound to a SHA-256 hash of the cluster identity, current/target Kubernetes versions, dry-run mode, max surge, node pool list, and validation status/warnings. A changed plan invalidates the approval. Approvals expire after `approvalTtlMinutes` (default 30 minutes).
 - The upgrade executor independently enforces approval, approver identity, matching plan hash, validation status, and `ALLOW_REAL_UPGRADES=true`. The model cannot approve or execute.
 - Keep `allowRealUpgrades=false` until the full disposable-cluster validation process is complete.
 
