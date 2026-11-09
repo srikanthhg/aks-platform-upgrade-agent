@@ -77,7 +77,9 @@ def approval_node(state):
         raise PermissionError('Approval does not match the current upgrade plan. Request a new approval.')
     if approved and not response.get('approved_by'):
         raise PermissionError('An authenticated operator identity is required for approval.')
-    return {'approval': {'approved': approved, 'approved_by': response.get('approved_by'), 'comment': response.get('comment'), 'plan_hash': plan_hash, 'status': 'APPROVED' if approved else 'REJECTED'}}
+    if approved and not response.get('approved_at'):
+        raise PermissionError('A timestamped operator approval is required.')
+    return {'approval': {'approved': approved, 'approved_by': response.get('approved_by'), 'comment': response.get('comment'), 'plan_hash': plan_hash, 'approved_at': response.get('approved_at'), 'status': 'APPROVED' if approved else 'REJECTED'}}
 
 
 def stop_node(state):
