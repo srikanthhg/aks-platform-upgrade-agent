@@ -153,7 +153,6 @@ jobs:
             VITE_ENTRA_TENANT_ID=${{ secrets.VITE_ENTRA_TENANT_ID }}
             VITE_ENTRA_CLIENT_ID=${{ secrets.VITE_ENTRA_CLIENT_ID }}
             VITE_API_SCOPE=${{ secrets.VITE_API_SCOPE }}
-            BACKEND_API_HOST=${{ secrets.VITE_API_BASE_URL }}
 
   # deploy-frontend:
   #   if: github.event_name == 'workflow_dispatch'
