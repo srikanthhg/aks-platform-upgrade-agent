@@ -255,9 +255,11 @@ Follow your organization's approval and least-privilege policies.
 VITE_ENTRA_TENANT_ID=<YOUR_TENANT_ID>
 VITE_ENTRA_CLIENT_ID=<YOUR_FRONTEND_CLIENT_ID>
 VITE_API_SCOPE=api://<BACKEND_API_CLIENT_ID>/AKS.Upgrade
-VITE_API_BASE_URL=https://<YOUR_BACKEND_CONTAINER_APP_URL>
+BACKEND_API_HOST=<YOUR_BACKEND_CONTAINER_APP_URL>
 ```
-
+```
+BACKEND_API_HOST=backend-api.internal.wittypond-14b25a6b.eastus.azurecontainerapps.io (no need to add https://)
+```
 
 ## Configure the backend
 
