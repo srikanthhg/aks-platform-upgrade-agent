@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 env:
   DOCKERHUB_BACKEND_IMAGE: srikanthhg/aks-upgrade-agent-backend
@@ -98,24 +99,13 @@ jobs:
       - name: Verify repository
         run: python scripts/verify_repository.py
 
-  # infra:
-  #   name: Infrastructure - Bicep Build
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-  #     - name: Validate Bicep template
-  #       uses: azure/CLI@v2
-  #       with:
-  #         inlineScript: az bicep build --file infra/main.bicep
-
   images:
     if: github.event_name == 'workflow_dispatch'
     name: Docker - Build & Push Images
     runs-on: ubuntu-latest
-    # needs: [backend, frontend, repository, infra]
     needs: [backend, frontend, repository]
-
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -134,7 +124,7 @@ jobs:
         shell: bash
         run: |
           SHORT_SHA="${GITHUB_SHA::7}"
-          echo "short_sha=${SHORT_SHA}" >> "${GITHUB_OUTPUT}"
+          echo "image_tag=sha-${SHORT_SHA}" >> "${GITHUB_OUTPUT}"
           echo "backend_tags=${DOCKERHUB_BACKEND_IMAGE}:latest,${DOCKERHUB_BACKEND_IMAGE}:sha-${SHORT_SHA}" >> "${GITHUB_OUTPUT}"
           echo "frontend_tags=${DOCKERHUB_FRONTEND_IMAGE}:latest,${DOCKERHUB_FRONTEND_IMAGE}:sha-${SHORT_SHA}" >> "${GITHUB_OUTPUT}"
 
@@ -146,7 +136,7 @@ jobs:
           push: true
           tags: |
             ${{ env.DOCKERHUB_BACKEND_IMAGE }}:latest
-            ${{ env.DOCKERHUB_BACKEND_IMAGE }}:sha-${{ steps.meta.outputs.short_sha }}
+            ${{ env.DOCKERHUB_BACKEND_IMAGE }}:${{ steps.meta.outputs.image_tag }}
           provenance: false
 
       - name: Build and push frontend image
@@ -157,10 +147,56 @@ jobs:
           push: true
           tags: |
             ${{ env.DOCKERHUB_FRONTEND_IMAGE }}:latest
-            ${{ env.DOCKERHUB_FRONTEND_IMAGE }}:sha-${{ steps.meta.outputs.short_sha }}
+            ${{ env.DOCKERHUB_FRONTEND_IMAGE }}:${{ steps.meta.outputs.image_tag }}
           provenance: false
           build-args: |
             VITE_ENTRA_TENANT_ID=${{ secrets.VITE_ENTRA_TENANT_ID }}
             VITE_ENTRA_CLIENT_ID=${{ secrets.VITE_ENTRA_CLIENT_ID }}
             VITE_API_SCOPE=${{ secrets.VITE_API_SCOPE }}
-            VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
+
+  deploy-frontend:
+    if: github.event_name == 'workflow_dispatch'
+    name: Deploy Frontend to Azure Container Apps
+    runs-on: ubuntu-latest
+    needs: images
+    steps:
+      - name: Validate deployment configuration
+        env:
+          BACKEND_API_HOST: ${{ vars.BACKEND_API_HOST }}
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          FRONTEND_CONTAINER_APP_NAME: ${{ vars.FRONTEND_CONTAINER_APP_NAME }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in BACKEND_API_HOST AZURE_RESOURCE_GROUP FRONTEND_CONTAINER_APP_NAME; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::GitHub repository variable ${name} is not configured."
+              exit 1
+            fi
+          done
+          if [[ "${BACKEND_API_HOST}" == *"://"* || "${BACKEND_API_HOST}" == */* || "${BACKEND_API_HOST}" == *:* ]]; then
+            echo "::error::BACKEND_API_HOST must be the backend internal FQDN hostname only, without scheme, port, or path."
+            exit 1
+          fi
+
+      - name: Sign in to Azure using OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Update frontend Container App
+        env:
+          AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          FRONTEND_CONTAINER_APP_NAME: ${{ vars.FRONTEND_CONTAINER_APP_NAME }}
+          BACKEND_API_HOST: ${{ vars.BACKEND_API_HOST }}
+          FRONTEND_IMAGE: ${{ env.DOCKERHUB_FRONTEND_IMAGE }}:${{ needs.images.outputs.image_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          az containerapp update \
+            --name "${FRONTEND_CONTAINER_APP_NAME}" \
+            --resource-group "${AZURE_RESOURCE_GROUP}" \
+            --image "${FRONTEND_IMAGE}" \
+            --set-env-vars "BACKEND_API_HOST=${BACKEND_API_HOST}"

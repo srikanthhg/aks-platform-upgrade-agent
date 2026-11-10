@@ -2,10 +2,8 @@ import { InteractionRequiredAuthError } from '@azure/msal-browser';
 import { msalInstance, apiScope } from './auth';
 import type { AuditEvent, StartPayload, WorkflowResponse } from './types';
 
-const configuredBase = import.meta.env.VITE_API_BASE_URL as string | undefined;
-if (!configuredBase) {
-  throw new Error('VITE_API_BASE_URL is missing from the frontend build configuration.');
-}
+// Empty by default: the browser calls the same-origin Nginx reverse proxy.
+const configuredBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
 const base = configuredBase.replace(/\/$/, '');
 
 async function token(): Promise<string> {

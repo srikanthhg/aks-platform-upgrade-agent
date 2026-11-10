@@ -1,0 +1,44 @@
+pid /tmp/nginx.pid;
+events {}
+http {
+  client_body_temp_path /tmp/client_temp;
+  proxy_temp_path /tmp/proxy_temp;
+  fastcgi_temp_path /tmp/fastcgi_temp;
+  uwsgi_temp_path /tmp/uwsgi_temp;
+  scgi_temp_path /tmp/scgi_temp;
+  include /etc/nginx/mime.types;
+
+  server {
+    listen 8080;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+    add_header Referrer-Policy no-referrer always;
+
+    location /api/ {
+      proxy_pass https://${BACKEND_API_HOST};
+      proxy_set_header Host ${BACKEND_API_HOST};
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_ssl_server_name on;
+      proxy_ssl_name ${BACKEND_API_HOST};
+      proxy_connect_timeout 30s;
+      proxy_send_timeout 300s;
+      proxy_read_timeout 300s;
+    }
+
+    location / {
+      try_files $uri $uri/ /index.html;
+    }
+
+    location = /health {
+      access_log off;
+      default_type text/plain;
+      return 200 'healthy';
+    }
+  }
+}
