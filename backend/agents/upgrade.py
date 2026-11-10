@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from typing import Any
+from datetime import datetime, timezone
 
 from config import get_settings
+from graph.approval import approval_plan_hash
 from tools.azure_cli import AzureCLI
 from upgrade.versioning import validate_target_version
 
@@ -16,8 +18,27 @@ class UpgradeAgent:
             raise PermissionError('Real upgrades are disabled. Set ALLOW_REAL_UPGRADES=true and submit dry_run=false explicitly.')
         if state.get('validation', {}).get('status') not in {'PASS', 'WARNING'}:
             raise RuntimeError('Upgrade cannot start without a successful pre-upgrade validation.')
-        if state.get('validation', {}).get('status') == 'WARNING' and not state.get('approval', {}).get('approved'):
+
+        approval = state.get('approval', {})
+        if state.get('validation', {}).get('status') == 'WARNING' and not approval.get('approved'):
             raise PermissionError('Human approval is required when validation has warnings.')
+        if not dry_run:
+            if not approval.get('approved'):
+                raise PermissionError('Human approval is required for every real AKS upgrade.')
+            if not approval.get('approved_by'):
+                raise PermissionError('A verified operator identity is required for every real AKS upgrade.')
+            if not approval.get('approved_at'):
+                raise PermissionError('A timestamped operator approval is required for every real AKS upgrade.')
+            try:
+                approved_at = datetime.fromisoformat(str(approval['approved_at']).replace('Z', '+00:00'))
+                age_seconds = (datetime.now(timezone.utc) - approved_at).total_seconds()
+            except (TypeError, ValueError) as exc:
+                raise PermissionError('The operator approval timestamp is invalid.') from exc
+            if age_seconds < 0 or age_seconds > settings.approval_ttl_minutes * 60:
+                raise PermissionError('The operator approval has expired. Request a new approval.')
+            expected_hash = approval_plan_hash(state)
+            if approval.get('plan_hash') != expected_hash:
+                raise PermissionError('The approved upgrade plan has changed. Request a new approval.')
 
         current = cluster.get('details', {}).get('kubernetesVersion')
         target = upgrade['target_version']

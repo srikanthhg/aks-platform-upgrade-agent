@@ -8,6 +8,7 @@ from agents.upgrade import UpgradeAgent
 from agents.reporting import ReportingAgent
 from agents.notification import NotificationAgent
 from agents.ai_advisor import AIAdvisor
+from graph.approval import approval_plan_hash
 from graph.state import AKSUpgradeState
 from tools.logger import logger
 
@@ -35,8 +36,8 @@ def ai_advisor_node(state):
         logger.info('Azure OpenAI advisor status: %s', result.get('status'))
         return {'ai_advisor': result}
     except Exception as exc:
-        # AI advice is informative only. Preserve deterministic safety checks and
-        # continue the workflow while making the AI service failure visible.
+        # Model output is advisory. Deterministic validation and the approval
+        # gate remain authoritative even when the model is unavailable.
         logger.exception('AI advisor failed; continuing without AI advice')
         return {'ai_advisor': {'enabled': True, 'status': 'UNAVAILABLE', 'summary': 'Azure OpenAI analysis failed. Continue using deterministic validation only.', 'error': str(exc)[:1000], 'risks': [], 'recommendations': [], 'questions': [], 'advisory_only': True}}
 
@@ -58,9 +59,27 @@ def final_notification_node(state): return {'notifications': {**state.get('notif
 
 
 def approval_node(state):
-    response = interrupt({'type': 'aks_upgrade_approval', 'cluster_name': state.get('cluster', {}).get('cluster_name'), 'target_version': state.get('upgrade', {}).get('target_version'), 'warnings': state.get('validation', {}).get('warnings', []), 'ai_advisor': state.get('ai_advisor', {})})
+    plan_hash = approval_plan_hash(dict(state))
+    response = interrupt({
+        'type': 'aks_upgrade_approval',
+        'cluster_name': state.get('cluster', {}).get('cluster_name'),
+        'resource_group': state.get('cluster', {}).get('resource_group'),
+        'target_version': state.get('upgrade', {}).get('target_version'),
+        'dry_run': state.get('upgrade', {}).get('dry_run', True),
+        'nodepools': [p.get('name') for p in state.get('cluster', {}).get('nodepools', []) if p.get('name')],
+        'validation_status': state.get('validation', {}).get('status'),
+        'warnings': state.get('validation', {}).get('warnings', []),
+        'ai_advisor': state.get('ai_advisor', {}),
+        'plan_hash': plan_hash,
+    })
     approved = bool(response.get('approved', False))
-    return {'approval': {'approved': approved, 'approved_by': response.get('approved_by'), 'comment': response.get('comment'), 'status': 'APPROVED' if approved else 'REJECTED'}}
+    if approved and response.get('plan_hash') != plan_hash:
+        raise PermissionError('Approval does not match the current upgrade plan. Request a new approval.')
+    if approved and not response.get('approved_by'):
+        raise PermissionError('An authenticated operator identity is required for approval.')
+    if approved and not response.get('approved_at'):
+        raise PermissionError('A timestamped operator approval is required.')
+    return {'approval': {'approved': approved, 'approved_by': response.get('approved_by'), 'comment': response.get('comment'), 'plan_hash': plan_hash, 'approved_at': response.get('approved_at'), 'status': 'APPROVED' if approved else 'REJECTED'}}
 
 
 def stop_node(state):

@@ -17,9 +17,9 @@ Dedicated LangGraph worker
         │
         ├── Azure CLI + kubectl ──► AKS discovery and deterministic health checks
         │
-        ├── Azure OpenAI ──► Risk analysis, recommendations, missing-information questions
+        ├── Azure OpenAI GPT-4.1-class ──► Bounded read-only fact tools, risk analysis, recommendations
+        ├── Human approval bound to the exact upgrade plan (all real upgrades)
         │
-        ├── Human approval gate (required for validation warnings)
         │
         └── Deterministic upgrade + post-upgrade validation + report
 ```
@@ -27,10 +27,11 @@ Dedicated LangGraph worker
 ## What makes this AI-assisted?
 
 - The workflow sends real discovered AKS facts—Kubernetes versions, available upgrades, node pools, validation results, and dry-run intent—to an Azure OpenAI chat deployment.
-- The model returns structured operational analysis: summary, risks, recommendations, and questions about missing information.
+- The model can call a small allowlist of bounded, read-only tools over facts already discovered by deterministic Azure CLI/kubectl agents, then returns operational analysis: summary, risks, recommendations, proposed checks, and missing-information questions.
 - The AI analysis is saved into LangGraph state and included in the workflow reports and approval context.
-- The application remains safe if Azure OpenAI is unavailable: the AI result is marked `UNAVAILABLE`, while deterministic validation and the configured approval gates remain authoritative.
-- The model does not run arbitrary shell commands, change cluster state, bypass validation, or approve its own recommendations.
+- The application remains safe if Azure OpenAI is unavailable: the AI result is marked `UNAVAILABLE`, while deterministic validation and mandatory human approval for real upgrades remain authoritative.
+- The model does not run arbitrary shell commands, Azure CLI, kubectl, change cluster state, bypass validation, or approve its own recommendations.
+- Every real upgrade requires an authenticated Entra operator approval bound to a SHA-256 hash of the cluster, target version, node pools, max surge, and validation facts. The executor checks this independently.
 
 ## Repository layout
 
@@ -47,7 +48,7 @@ Dedicated LangGraph worker
 ## Configure Azure OpenAI
 
 1. Create or use an Azure AI Foundry / Azure OpenAI resource.
-2. Deploy a chat-capable model (for example, a supported GPT deployment) and note the **deployment name**. Use the deployment name, not merely the model family name.
+2. Deploy a GPT-4.1-class chat model and note the **deployment name**. Use the deployment name, not merely the model family name.
 3. Configure these backend environment variables in the API/worker Container Apps environment:
 
 ```dotenv
@@ -57,7 +58,7 @@ AZURE_OPENAI_DEPLOYMENT=<chat-deployment-name>
 AZURE_OPENAI_API_VERSION=2024-10-21
 ```
 
-4. Prefer managed identity in Azure. Grant the Container Apps workload identity the required Azure AI inference permissions for the resource. The code uses `DefaultAzureCredential` when `AZURE_OPENAI_API_KEY` is not set.
+4. Prefer managed identity in Azure. Grant the user-assigned identity attached to the API and worker the **Cognitive Services OpenAI User** role on the Azure OpenAI resource. The code uses `DefaultAzureCredential` when `AZURE_OPENAI_API_KEY` is not set.
 5. For local development only, you may set `AZURE_OPENAI_API_KEY` to a key stored in your local untracked `.env`. Never commit keys or place them in frontend `VITE_*` variables.
 6. Restart/redeploy the backend and worker with the new configuration. AI analysis runs after deterministic pre-upgrade validation; inspect the workflow report for `ai_advisor.status` (`COMPLETED`, `DISABLED`, or `UNAVAILABLE`).
 

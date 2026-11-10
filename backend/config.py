@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     teams_notifications_enabled: bool=False
     reports_directory: Path=Path('/tmp/aks-agent/reports')
     kubeconfig_directory: Path=Path('/tmp/aks-agent/kubeconfigs')
+    approval_ttl_minutes: int=Field(default=30,ge=1,le=240)
     cluster_lock_ttl_minutes: int=Field(default=360,ge=30,le=1440)
     command_timeout_seconds: int=Field(default=300,ge=10,le=3600)
     upgrade_timeout_seconds: int=Field(default=7200,ge=300,le=21600)
