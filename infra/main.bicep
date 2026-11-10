@@ -16,7 +16,7 @@ param apiMinReplicas int = 2
 param apiMaxReplicas int = 5
 param uiMinReplicas int = 2
 param uiMaxReplicas int = 5
-param externalApiIngress bool = false
+param externalApiIngress bool = true
 param applicationInsightsConnectionString string = ''
 param allowRealUpgrades bool = false
 
@@ -120,12 +120,6 @@ resource ui 'Microsoft.App/containerApps@2024-03-01' = {
         {
           name: 'ui'
           image: uiImage
-          env: [
-            {
-              name: 'BACKEND_API_HOST'
-              value: api.properties.configuration.ingress.fqdn
-            }
-          ]
           resources: {
             cpu: json('0.5')
             memory: '1Gi'
