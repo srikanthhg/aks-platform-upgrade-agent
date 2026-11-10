@@ -174,3 +174,37 @@ def test_current_identity_returns_forbidden_when_required_role_is_missing(monkey
 
     assert error.value.status_code == 403
     assert error.value.detail == "Required application role is missing"
+
+
+def test_current_identity_logs_validation_stage_without_logging_token(monkeypatch, caplog):
+    settings = SimpleNamespace(
+        auth_mode="entra_id",
+        entra_tenant_id=TENANT_ID,
+        entra_audience=AUDIENCE,
+        entra_required_role=ROLE,
+    )
+    monkeypatch.setattr(security, "get_settings", lambda: settings)
+    issuer = f"https://sts.windows.net/{TENANT_ID}/"
+    monkeypatch.setattr(
+        security.jwt,
+        "decode",
+        Mock(
+            side_effect=[
+                {"iss": issuer, "ver": "1.0"},
+                jwt.InvalidAudienceError("Audience does not match"),
+            ]
+        ),
+    )
+    jwks_client = Mock()
+    jwks_client.get_signing_key_from_jwt.return_value = SimpleNamespace(key=object())
+    monkeypatch.setattr(security, "PyJWKClient", Mock(return_value=jwks_client))
+
+    token = "do-not-log-this-token"
+    with pytest.raises(HTTPException) as error:
+        security.current_identity(f"Bearer {token}", None)
+
+    assert error.value.status_code == 401
+    assert error.value.detail == "Invalid access token"
+    assert "stage=jwt_validation" in caplog.text
+    assert "InvalidAudienceError" in caplog.text
+    assert token not in caplog.text
