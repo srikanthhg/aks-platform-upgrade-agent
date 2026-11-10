@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hmac
+import logging
 from typing import Any
 
 import jwt
@@ -8,6 +9,9 @@ from fastapi import Header, HTTPException
 from jwt import PyJWKClient
 
 from config import get_settings
+
+
+logger = logging.getLogger(__name__)
 
 
 def _entra_token_metadata(token: str, tenant_id: str) -> tuple[str, str]:
@@ -62,12 +66,18 @@ def current_identity(
     if not token:
         raise HTTPException(status_code=401, detail="Bearer token required")
 
+    stage = "configuration"
     try:
         if not settings.entra_tenant_id or not settings.entra_audience:
             raise ValueError("Microsoft Entra tenant and audience must be configured")
 
+        stage = "token_metadata"
         expected_issuer, jwks_uri = _entra_token_metadata(token, settings.entra_tenant_id)
+
+        stage = "signing_key_retrieval"
         signing_key = PyJWKClient(jwks_uri).get_signing_key_from_jwt(token).key
+
+        stage = "jwt_validation"
         claims = jwt.decode(
             token,
             signing_key,
@@ -77,15 +87,25 @@ def current_identity(
             options={"require": ["exp", "iat", "iss", "aud", "tid"]},
         )
 
+        stage = "tenant_validation"
         # The issuer is tenant-specific, and this additional check ensures the
         # token's tenant claim agrees with the configured tenant as well.
         if str(claims.get("tid", "")).lower() != settings.entra_tenant_id.lower():
             raise ValueError("Token tenant does not match configured tenant")
     except Exception as exc:
+        # Deliberately log only the validation stage and exception details.
+        # Never log the bearer token, authorization header, or decoded claims.
+        logger.warning(
+            "Microsoft Entra authentication failed: stage=%s error_type=%s error=%s",
+            stage,
+            type(exc).__name__,
+            str(exc),
+        )
         raise HTTPException(status_code=401, detail="Invalid access token") from exc
 
     roles = list(claims.get("roles", []))
     if settings.entra_required_role and settings.entra_required_role not in roles:
+        logger.info("Microsoft Entra authorization denied: required application role is missing")
         raise HTTPException(status_code=403, detail="Required application role is missing")
 
     return {
