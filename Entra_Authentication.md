@@ -308,7 +308,8 @@ The backend configuration in this project expects values such as:
 
 ## Worker Container App
 
-🟢 **Required for production**
+![Required for production](https://shields.io)
+
 
 The worker runs the workflow queue processor and does not need HTTP ingress.
 
