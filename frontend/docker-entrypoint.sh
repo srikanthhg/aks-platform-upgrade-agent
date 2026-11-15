@@ -11,7 +11,7 @@ mkdir -p /tmp/client_temp /tmp/proxy_temp /tmp/fastcgi_temp /tmp/uwsgi_temp /tmp
 # between environments without rebuilding the frontend bundle.
 envsubst '${ENTRA_TENANT_ID} ${ENTRA_CLIENT_ID} ${API_SCOPE}' \
   < /etc/nginx/runtime-config.js.template \
-  > /usr/share/nginx/html/runtime-config.js
+  > /tmp/runtime-config.js
 
 if [ -n "${BACKEND_API_HOST:-}" ]; then
   case "$BACKEND_API_HOST" in
