@@ -2,6 +2,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
+from urllib.parse import quote
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -14,7 +15,14 @@ class Settings(BaseSettings):
     entra_audience: str | None = None
     entra_required_role: str = 'AKS.Upgrade.Operator'
     cors_allowed_origins: str = 'http://localhost:5173'
-    database_url: str = 'postgresql://postgres:postgres@localhost:5432/aks_upgrade_agent'
+    # Prefer separate PostgreSQL settings in ACA. DATABASE_URL remains as a migration fallback.
+    database_url: str | None = None
+    postgres_host: str | None = None
+    postgres_port: int = 5432
+    postgres_db: str | None = None
+    postgres_user: str | None = None
+    postgres_password: str | None = None
+    postgres_sslmode: str = 'require'
     log_level: str='INFO'
     applicationinsights_connection_string: str | None = None
     azure_subscription_id: str | None=None
@@ -36,11 +44,49 @@ class Settings(BaseSettings):
     command_timeout_seconds: int=Field(default=300,ge=10,le=3600)
     upgrade_timeout_seconds: int=Field(default=7200,ge=300,le=21600)
     @model_validator(mode='after')
-    def validate_prod(self):
-        if self.app_environment=='production':
-            if self.auth_mode!='entra_id': raise ValueError('Production requires AUTH_MODE=entra_id')
-            if not self.entra_tenant_id or not self.entra_audience: raise ValueError('ENTRA_TENANT_ID and ENTRA_AUDIENCE are required')
-            if not self.database_url.startswith(('postgresql://','postgresql+psycopg://')): raise ValueError('Production requires PostgreSQL DATABASE_URL')
+    def configure_database(self):
+        postgres_parts = {
+            'POSTGRES_HOST': self.postgres_host,
+            'POSTGRES_DB': self.postgres_db,
+            'POSTGRES_USER': self.postgres_user,
+            'POSTGRES_PASSWORD': self.postgres_password,
+        }
+        supplied = [name for name, value in postgres_parts.items() if value is not None and value != '']
+        if supplied and len(supplied) != len(postgres_parts):
+            missing = [name for name, value in postgres_parts.items() if value is None or value == '']
+            raise ValueError(f"PostgreSQL configuration is incomplete; missing: {', '.join(missing)}")
+
+        if len(supplied) == len(postgres_parts):
+            if not self.postgres_host or '://' in self.postgres_host or '/' in self.postgres_host:
+                raise ValueError('POSTGRES_HOST must be a hostname only')
+            if not 1 <= self.postgres_port <= 65535:
+                raise ValueError('POSTGRES_PORT must be between 1 and 65535')
+            # Percent-encode credentials/database components so special characters
+            # such as @, :, /, # and ? cannot corrupt the connection URI.
+            user = quote(self.postgres_user or '', safe='')
+            password = quote(self.postgres_password or '', safe='')
+            database = quote(self.postgres_db or '', safe='')
+            sslmode = quote(self.postgres_sslmode, safe='')
+            self.database_url = (
+                f"postgresql://{user}:{password}@{self.postgres_host}:"
+                f"{self.postgres_port}/{database}?sslmode={sslmode}"
+            )
+        elif not self.database_url:
+            if self.app_environment == 'production':
+                raise ValueError(
+                    'Production requires POSTGRES_HOST, POSTGRES_DB, POSTGRES_USER, '
+                    'POSTGRES_PASSWORD (and optional POSTGRES_PORT/POSTGRES_SSLMODE), '
+                    'or DATABASE_URL'
+                )
+            self.database_url = 'postgresql://postgres:postgres@localhost:5432/aks_upgrade_agent'
+
+        if self.app_environment == 'production':
+            if self.auth_mode != 'entra_id':
+                raise ValueError('Production requires AUTH_MODE=entra_id')
+            if not self.entra_tenant_id or not self.entra_audience:
+                raise ValueError('ENTRA_TENANT_ID and ENTRA_AUDIENCE are required')
+            if not self.database_url.startswith(('postgresql://', 'postgresql+psycopg://')):
+                raise ValueError('Production requires PostgreSQL connection settings')
         return self
     @property
     def ai_enabled(self) -> bool:
