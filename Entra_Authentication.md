@@ -351,6 +351,58 @@ Assign the Container App's managed identity the **Cognitive Services OpenAI User
 
 $\color{red}{\textbf{Keep these safe initially}}$
 
+
+| Variable                   | Initial value  | Purpose                           |
+| :------------------------- | :------------- | :-------------------------------- |
+| `ALLOW_REAL_UPGRADES`      | `false`        | Prevent real upgrades initially   |
+| `DEFAULT_DRY_RUN`          | `true`         | Default workflows to dry-run mode |
+| `APPROVAL_TTL_MINUTES`     | `30`           | Approval validity                 |
+| `CLUSTER_LOCK_TTL_MINUTES` | `360`          | Cluster operation lock duration   |
+| `COMMAND_TIMEOUT_SECONDS`  | `300`          | Command timeout                   |
+| `UPGRADE_TIMEOUT_SECONDS`  | `7200`         | Upgrade timeout                   |
+
+
+Keep real upgrades disabled until you have tested discovery, validation, approval, and worker execution end to end.
+
+
+## Optional monitoring and notifications
+
+Configure these on both backend and worker if the relevant features are enabled.
+
+
+| Variable                                | Example                            | Purpose                        |
+| :-------------------------------------- | :--------------------------------- | :----------------------------- |
+| `TEAMS_NOTIFICATIONS_ENABLED`           | `false`                            | Enable Teams notifications     |
+| `TEAMS_WEBHOOK_URL`                     | `<TEAMS-WEBHOOK-URL>`              | Teams notification endpoint    |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | `<APP-INSIGHTS-CONNECTION-STRING>` | Application Insights telemetry |
+| `REPORTS_DIRECTORY`                     | `/tmp/aks-agent/reports`           | Workflow reports               |
+| `KUBECONFIG_DIRECTORY`                  | `/tmp/aks-agent/kubeconfigs`       | Kubeconfig storage             |
+| `LOG_LEVEL`                             | `INFO`                             | Application logging            |
+
+The directories have defaults in the current configuration, so you don't need to override them unless required.
+
+## ACA deployment configuration
+Here is the deployment layout.
+
+![alt text](ACA-deployment-configuration.png)
+
+## Recommended initial settings:
+
+
+| ACA setting           | Frontend                    | Backend                 | Worker   |
+| :-------------------- | :-------------------------- | :---------------------- | :------- |
+| **Ingress**           | External                    | As currently configured | Disabled |
+| **Image**             | Frontend                    | Backend                 | Worker   |
+| **Initial replicas**  | `1`                         | `1`                     | `1`      |
+| **Managed identity**  | Not required for this setup | Enable                  | Enable   |
+| **PostgreSQL access** | No                          | Yes                     | Yes      |
+
+
+
+### For Azure operations, assign the appropriate AKS permissions to the managed identities used by the backend/worker. The exact role scope should follow your cluster and resource-group security requirements.
+
+### Important implementation note: The current configuration supports AZURE_AUTH_MODE=managed_identity and AZURE_MANAGED_IDENTITY_CLIENT_ID, and the AI advisor uses DefaultAzureCredential. Before relying on those settings for AKS operations, verify the Azure credential implementation used by the cluster-management code.
+
 ### Security and production recommendations
 
 * Never put client secrets, database passwords, or other credentials in frontend code.
