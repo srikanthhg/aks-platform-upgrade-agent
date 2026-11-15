@@ -149,16 +149,6 @@ jobs:
             ${{ env.DOCKERHUB_FRONTEND_IMAGE }}:latest
             ${{ env.DOCKERHUB_FRONTEND_IMAGE }}:${{ steps.meta.outputs.image_tag }}
           provenance: false
-          # Map GitHub secrets into step environment variables, then pass them
-          # explicitly as Docker build arguments consumed by frontend/Dockerfile.
-          build-args: |
-            VITE_ENTRA_TENANT_ID=${{ env.VITE_ENTRA_TENANT_ID }}
-            VITE_ENTRA_CLIENT_ID=${{ env.VITE_ENTRA_CLIENT_ID }}
-            VITE_API_SCOPE=${{ env.VITE_API_SCOPE }}
-        env:
-          VITE_ENTRA_TENANT_ID: ${{ secrets.VITE_ENTRA_TENANT_ID }}
-          VITE_ENTRA_CLIENT_ID: ${{ secrets.VITE_ENTRA_CLIENT_ID }}
-          VITE_API_SCOPE: ${{ secrets.VITE_API_SCOPE }}
 
   # deploy-frontend:
   #   if: github.event_name == 'workflow_dispatch'
