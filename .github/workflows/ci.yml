@@ -14,6 +14,7 @@ permissions:
 env:
   DOCKERHUB_BACKEND_IMAGE: srikanthhg/aks-upgrade-agent-backend
   DOCKERHUB_FRONTEND_IMAGE: srikanthhg/aks-upgrade-agent-frontend
+  DOCKERHUB_WORKER_IMAGE: srikanthhg/aks-upgrade-agent-worker
 
 jobs:
   backend:
@@ -148,6 +149,19 @@ jobs:
           tags: |
             ${{ env.DOCKERHUB_FRONTEND_IMAGE }}:latest
             ${{ env.DOCKERHUB_FRONTEND_IMAGE }}:${{ steps.meta.outputs.image_tag }}
+          provenance: false
+
+      - name: Build and push worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: worker/Dockerfile
+          build-args: |
+            BACKEND_IMAGE=${{ env.DOCKERHUB_BACKEND_IMAGE }}:${{ steps.meta.outputs.image_tag }}
+          push: true
+          tags: |
+            ${{ env.DOCKERHUB_WORKER_IMAGE }}:latest
+            ${{ env.DOCKERHUB_WORKER_IMAGE }}:${{ steps.meta.outputs.image_tag }}
           provenance: false
 
   # deploy-frontend:
