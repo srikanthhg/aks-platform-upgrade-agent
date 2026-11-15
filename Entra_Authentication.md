@@ -308,8 +308,7 @@ The backend configuration in this project expects values such as:
 
 ## Worker Container App
 
-![Required for production](https://shields.io)
-
+$\color{green}{\textsf{Required for production}}$
 
 The worker runs the workflow queue processor and does not need HTTP ingress.
 
@@ -346,7 +345,11 @@ These settings enable the AI advisor.
 
 **AI advisor implementation**: it uses DefaultAzureCredential when **AZURE_OPENAI_API_KEY** is not provided. Therefore, for Azure Container Apps, you can use managed identity instead of storing an API key.
 
+Assign the Container App's managed identity the **Cognitive Services OpenAI User** role on the Azure OpenAI resource.
 
+## Upgrade safety settings – Backend and Worker
+
+$\color{red}{\textsf{Keep these safe initially}}$
 
 ### Security and production recommendations
 
