@@ -251,12 +251,13 @@ Follow your organization's approval and least-privilege policies.
 
 ## Configure the frontend API variables
 
-```
-VITE_ENTRA_TENANT_ID=<YOUR_TENANT_ID>
-VITE_ENTRA_CLIENT_ID=<YOUR_FRONTEND_CLIENT_ID>
-VITE_API_SCOPE=api://<BACKEND_API_CLIENT_ID>/AKS.Upgrade
-BACKEND_API_HOST=<YOUR_BACKEND_CONTAINER_APP_URL>
-```
+| Variable           | Example value                           | Purpose                             |
+| :----------------- | :-------------------------------------- | :---------------------------------- |
+| `ENTRA_TENANT_ID`  | `<YOUR_TENANT_ID>`                      | Microsoft Entra tenant ID           |
+| `ENTRA_CLIENT_ID`  | `<SPA-CLIENT-ID>`                       | Frontend app registration client ID |
+| `API_SCOPE`        | `api://<API-APP-CLIENT-ID>/AKS.Upgrade` | Backend API delegated scope         |
+| `BACKEND_API_HOST` | `backend-api.<ACA-ENVIRONMENT-DOMAIN>`  | Backend hostname for Nginx proxy    |
+
 ```
 BACKEND_API_HOST=backend-api.internal.wittypond-14b25a6b.eastus.azurecontainerapps.io (no need to add https://)
 ```
@@ -265,15 +266,23 @@ BACKEND_API_HOST=backend-api.internal.wittypond-14b25a6b.eastus.azurecontainerap
 
 The backend configuration in this project expects values such as:
 
-```
-APP_ENVIRONMENT=production
-AUTH_MODE=entra_id
-ENTRA_TENANT_ID=<YOUR_TENANT_ID>
-ENTRA_AUDIENCE=api://<BACKEND_API_CLIENT_ID>
-ENTRA_REQUIRED_ROLE=AKS.Upgrade.Operator
-DATABASE_URL=<YOUR_POSTGRESQL_CONNECTION_STRING>
-CORS_ALLOWED_ORIGINS=https://<YOUR_FRONTEND_CONTAINER_APP_URL>
-```
+
+
+| Variable               | Example value                             | Required?                   |
+| :--------------------- | :---------------------------------------- | :-------------------------- |
+| `APP_ENVIRONMENT`      | `production`                              | Yes                         |
+| `AUTH_MODE`            | `entra_id`                                | Yes                         |
+| `ENTRA_TENANT_ID`      | `<TENANT-ID>`                             | Yes                         |
+| `ENTRA_AUDIENCE`       | `api://<API-APP-CLIENT-ID>`               | Yes                         |
+| `ENTRA_REQUIRED_ROLE`  | `AKS.Upgrade.Operator`                    | Recommended                 |
+| `POSTGRES_HOST`        | `my-postgres.postgres.database.azure.com` | Yes                         |
+| `POSTGRES_PORT`        | `5432`                                    | Yes                         |
+| `POSTGRES_DB`          | `aks_upgrade_agent`                       | Yes                         |        
+| `POSTGRES_USER`        | `<your-username>`                         | Yes                         | 
+| `POSTGRES_PASSWORD`    | `<your-password>`                         | Yes                         | 
+| `POSTGRES_SSLMODE`     | `require`                                 | Yes                         | 
+| `CORS_ALLOWED_ORIGINS` | `https://<FRONTEND-FQDN>`                 | Set to your frontend origin |
+| `LOG_LEVEL`            | `INFO`                                    | Optional                    |
 
 
 ### Deploy and validate the backend
