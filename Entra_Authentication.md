@@ -308,7 +308,7 @@ The backend configuration in this project expects values such as:
 
 ## Worker Container App
 
-$\color{green}{\textsf{Required for production}}$
+🟢 **Required for production**
 
 The worker runs the workflow queue processor and does not need HTTP ingress.
 
