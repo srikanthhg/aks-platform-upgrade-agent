@@ -1,4 +1,4 @@
-import { AppBar, Avatar, Box, Button, Container, Stack, Toolbar, Typography } from '@mui/material';
+import { AppBar, Avatar, Box, Button, Container, Toolbar, Typography } from '@mui/material';
 import { AuthenticatedTemplate, UnauthenticatedTemplate, useMsal } from '@azure/msal-react';
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { Dashboard as DashboardIcon, Logout, Terminal } from '@mui/icons-material';
