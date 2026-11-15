@@ -308,7 +308,7 @@ The backend configuration in this project expects values such as:
 
 ## Worker Container App
 
-$\color{green}{\textsf{Required for production}}$
+$\color{green}{\textbf{Required for production}}$
 
 The worker runs the workflow queue processor and does not need HTTP ingress.
 
@@ -349,7 +349,7 @@ Assign the Container App's managed identity the **Cognitive Services OpenAI User
 
 ## Upgrade safety settings – Backend and Worker
 
-$\color{red}{\textsf{Keep these safe initially}}$
+$\color{red}{\textbf{Keep these safe initially}}$
 
 ### Security and production recommendations
 
