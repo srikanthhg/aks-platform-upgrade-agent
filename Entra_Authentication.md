@@ -306,6 +306,47 @@ The backend configuration in this project expects values such as:
 * Only after these checks should you test AKS upgrade operations through the UI.
 
 
+## Worker Container App
+
+$\color{green}{\textsf{Required for production}}$
+
+The worker runs the workflow queue processor and does not need HTTP ingress.
+
+
+| Variable                           | Example value                             | Required?                                          |
+| :--------------------------------- | :---------------------------------------- | :------------------------------------------------- |
+| `APP_ENVIRONMENT`                  | `production`                              | Yes                                                |
+| `AUTH_MODE`                        | `entra_id`                                | Yes, due to current production settings validation |
+| `ENTRA_TENANT_ID`                  | `<TENANT-ID>`                             | Yes, due to current production settings validation |
+| `ENTRA_AUDIENCE`                   | `api://<API-APP-CLIENT-ID>`               | Yes, due to current production settings validation |
+| `POSTGRES_HOST`                    | `my-postgres.postgres.database.azure.com` | Yes                                                |
+| `POSTGRES_PORT`                    | `5432`                                    | Yes                                                |
+| `POSTGRES_DB`                      | `aks_upgrade_agent`                       | Yes                                                |
+| `POSTGRES_USER`                    | `<your-username>`                         | Yes                                                |
+| `POSTGRES_PASSWORD`                | `<your-password>`                         | Yes                                                |
+| `POSTGRES_SSLMODE`                 | `require`                                 | Yes                                                |
+| `AZURE_AUTH_MODE`                  | `managed_identity`                        | For managed identity authentication                |
+| `AZURE_SUBSCRIPTION_ID`            | `<AZURE-SUBSCRIPTION-ID>`                 | Set for AKS operations                             |
+| `AZURE_MANAGED_IDENTITY_CLIENT_ID` | `<MANAGED-IDENTITY-CLIENT-ID>`            | Optional (if using user-assigned managed identity) |
+
+
+## 4. Azure OpenAI settings – Backend and Worker
+These settings enable the AI advisor.
+
+
+| Variable                   | Example value                          | Required?                                |
+| :------------------------- | :------------------------------------- | :--------------------------------------- |
+| `AI_ADVISOR_ENABLED`       | `true`                                 | Recommended                              |
+| `AZURE_OPENAI_ENDPOINT`    | `https://<RESOURCE>.openai.azure.com/` | Yes, if AI advisor enabled               |
+| `AZURE_OPENAI_DEPLOYMENT`  | `gpt-41-aks-advisor`                   | Yes, if AI advisor enabled               |
+| `AZURE_OPENAI_API_VERSION` | `2024-10-21`                           | Optional; this is the configured default |
+| `AZURE_OPENAI_API_KEY`     | `<SECRET>`                             | Optional                                 |
+
+
+**AI advisor implementation**: it uses DefaultAzureCredential when **AZURE_OPENAI_API_KEY** is not provided. Therefore, for Azure Container Apps, you can use managed identity instead of storing an API key.
+
+
+
 ### Security and production recommendations
 
 * Never put client secrets, database passwords, or other credentials in frontend code.
