@@ -1,0 +1,5 @@
+window.__APP_CONFIG__ = {
+  tenantId: "${ENTRA_TENANT_ID}",
+  clientId: "${ENTRA_CLIENT_ID}",
+  apiScope: "${API_SCOPE}"
+};
